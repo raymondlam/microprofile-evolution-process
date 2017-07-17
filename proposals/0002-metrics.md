@@ -156,9 +156,231 @@ an overall view if the same metric has different metadata.
 
 Metadata SHOULD support caching via cache control headers and SHOULD reply with a 304 Not Modified response accordingly.
 
-## Required metrics
+## Base metrics
 
-Required metrics is a list of metrics that all vendors need to implement. They are exposed under `/metrics/base`
+Base metrics is a list of metrics that all vendors need to implement. Optional base metrics are recommended to be implemented but are not required. These metrics are exposed under `/metrics/base`
+
+The following is a list of required and optional base metrics:
+
+### General JVM stats
+
+**FreeHeapMemory**
+```  
+Name: free_heap_memory
+Display Name: Free Heap Memory
+Type: Gauge
+Unit: Bytes
+Description: Displays the calculated value of free heap memory.
+Mbean:
+Notes: Calculated from (java.lang:type=Memory/HeapMemoryUsage#committed) - (java.lang:type=Memory/HeapMemoryUsage#used)
+```
+
+**UsedHeapMemory**
+```
+Name: used_heap_memory
+DisplayName: Used Heap Memory
+Type: Gauge
+Unit: Bytes
+Description: Displays the amount of used heap memory in bytes.
+MBean: java.lang:type=Memory/HeapMemoryUsage#used
+```
+
+**CommittedHeapMemory**
+```
+Name: committed_heap_memory
+DisplayName: Committed Heap Memory
+Type: Gauge
+Unit: Bytes
+Description: Displays the amount of memory in bytes that is committed for the Java virtual machine to use. This amount of memory is guaranteed for the Java virtual machine to use.
+MBean: java.lang:type=Memory/HeapMemoryUsage#committed
+Notes: Also from JSR 77
+```
+
+**MaxHeapMemory**
+```
+Name: max_heap_memory
+DisplayName: Max Heap Memory
+Type: Gauge
+Unit: Bytes
+Description: Displays the maximum amount of heap memory in bytes that can be used for memory management. This attribute displays -1 if the maximum heap memory size is undefined. This amount of memory is not guaranteed to be available for memory management if it is greater than the amount of committed memory. The Java virtual machine may fail to allocate memory even if the amount of used memory does not exceed this maximum size.
+MBean: java.lang:type=Memory/HeapMemoryUsage#max
+```
+
+**GCCount (Multiple)**
+```
+Name: gc_count
+DisplayName: Garbage Collection Count
+Type: Counter
+Unit:  None
+Description:  Displays the total number of collections that have occurred. This attribute lists -1 if the collection count is undefined for this collector.
+MBean: java.lang:type=GarbageCollector/CollectionCount
+Notes: There are multiple GCs which have different names (different across JVM)
+```
+
+**GCTime (Multiple) - Approximate accumulated collection elapsed time in ms**
+```
+Name: gc_time
+DisplayName: Garbage Collection Time
+Type: Counter
+Unit: milliseconds
+Description: Displays the approximate accumulated collection elapsed time in milliseconds. This attribute displays -1 if the collection elapsed time is undefined for this collector. The Java virtual machine implementation may use a high resolution timer to measure the elapsed time. This attribute may display the same value even if the collection count has been incremented if the collection elapsed time is very short.
+MBean: java.lang:type=GarbageCollector/CollectionTime
+Notes: There are multiple GCs which have different names (different across JVM)
+We can collect GC time at regular interval, we can measure the rate of the percentage of time spent with GC at certain intervals
+```
+
+**JVM Uptime - Up time of the Java Virtual machine**
+```
+Name: jvm_uptime
+DisplayName: JVM Uptime
+Type: Counter
+Unit: milliseconds
+Description: Displays the start time of the Java virtual machine in milliseconds. This attribute displays the approximate time when the Java virtual machine started.
+MBean: java.lang:type=Runtime/Uptime
+Notes: Also from JSR 77
+```
+
+### Thread JVM stats
+**ThreadCount**
+```
+Name: thread_count
+DisplayName: Thread Count
+Type: Counter
+Unit: none
+Description: Displays the current number of live threads including both daemon and non-daemon threads
+MBean: java.lang:type=Threading/ThreadCount
+```
+
+**DaemonThreadCount**
+```
+Name: daemon_thread_count
+DisplayName: Daemon Thread Count
+Type: Counter
+Unit: None
+Description: Displays the current number of live daemon threads.
+MBean: java.lang:type=Threading/DaemonThreadCount
+```
+
+**NonDaemonThreadCount**
+```
+Name: non_daemon_thread_count
+DisplayName: Non Daemon Thread Count
+Type: Counter
+Unit: none
+Description: Displays the current number of live non-daemon threads.
+MBean:
+Note: Calculated by (java.lang:type=Threading/ThreadCount) - (java.lang:type=Threading/DaemonThreadCount)
+```
+
+**PeakThreadCount**
+```
+Name: peak_thread_count
+DisplayName: Peak Thread Count
+Type: Counter
+Unit: None
+Description: Displays the peak live thread count since the Java virtual machine started or peak was reset. This includes daemon and non-daemon threads.
+MBean: java.lang:type=Threading/PeakThreadCount
+```
+
+### Thread Pool Stats
+**(Optional) ActiveThreads (Multiple)**
+```
+Name: thread_pool_active_threads
+DisplayName: Active Threads
+Type: Gauge
+Unit: none
+Description: Number of active threads that belong to a specific thread pool.
+Note: This is a vendor specific attribute/operation that is not defined in java.lang. There can be multiple thread pools with different names.
+```
+
+**(Optional) PoolSize (Multiple)**
+```
+Name: thread_pool_size
+DisplayName: Thread Pool Size
+Type: Gauge
+Unit: none
+Description: The size of a specific thread pool.
+Note: This is a vendor specific attribute/operation that is not defined in java.lang. There can be multiple thread pools with different names.
+```
+
+### ClassLoading JVM stats   
+
+**LoadedClassCount**
+```
+Name: current_loaded_class_count
+DisplayName: Current Loaded Class Count
+Type: Counter
+Unit: none
+Description: Displays the number of classes that are currently loaded in the Java virtual machine.
+MBean: java.lang:type=ClassLoading/LoadedClassCount
+```
+
+**TotalLoadedClassLoaded**
+```
+Name: total_loaded_class_count
+DisplayName: Total Loaded Class Count
+Type: Counter
+Unit: None
+Description: Displays the total number of classes that have been loaded since the Java virtual machine has started execution.
+MBean: java.lang:type=ClassLoading/TotalLoadedClassCount
+```
+
+**UnloadedClassCount**
+```
+Name: total_unloaded_class_count
+DisplayName: Total Unloaded Class Count
+Type: Counter
+Unit: None
+Description: Displays the total number of classes unloaded since the Java virtual machine has started execution.
+MBean:java.lang:type=ClassLoading/UnloadedClassCount
+```
+
+### Operating System
+**AvailableProcessors**
+```
+Name: available_processors
+DisplayName: Available Processors
+Type: Gauge
+Unit: none
+Description: Displays the number of processors available to the Java virtual machine. This value may change during a particular invocation of the virtual machine.
+MBean: java.lang:type=OperatingSystem/AvailableProcessors
+```
+
+**SystemLoadAverage**
+```
+Name: system_load_average
+DisplayName: System Load Average
+Type: Gauge
+Unit: none
+Description: Displays the system load average for the last minute. The system load average is the sum of the number of runnable entities queued to the available processors and the number of runnable entities running on the available processors averaged over a period of time. The way in which the load average is calculated is operating system specific but is typically a damped time-dependent average. If the load average is not available, a negative value is displayed. This attribute is designed to provide a hint about the system load and may be queried frequently. The load average may be unavailable on some platform where it is expensive to implement this method.
+MBean: java.lang:type=OperatingSystem/SystemLoadAverage
+```
+
+**(Optional) ProcessCpuLoad**
+```
+Name: process_cpu_load
+DisplayName: Process CPU Load
+Type:  Gauge
+Unit: Percent
+Description: Displays the "recent cpu usage" for the Java Virtual Machine process
+MBean: java.lang:type=OperatingSystem (com.sun.management.UnixOperatingSystemMXBean for Oracle Java, similar one exists for IBM Java: com.ibm.lang.management.ExtendedOperatingSystem)
+Note: This is a vendor specific attribute/operation that is not defined in java.lang
+```
+
+
+
+### Servlet Stats
+
+**ResponseTime**
+```
+Name: response_time
+DisplayName: Response Time
+Type: Timer (DropWizard metric type)
+Unit: milliseconds or nanoseconds
+Description: Response time
+MBean:
+Notes: There can be multiple servlet stats. A timer provides the following (max, min, avg, count).
+```
 
 The following is a list of required metrics if the application uses the data. E.g. if the application does not use any data source, then there will be no data sources listed.
 
@@ -178,7 +400,6 @@ Q: should we expose current total memory usage (heap+non heap) in a separate ite
 environments do may not be able to report fine grained values, but only a total.
 
 Q: should current thread count be exposed in a separate item?
-
 
 ## Vendor specific data
 
@@ -493,4 +714,3 @@ n/a
 
 There exists Jolokia as JMX-HTTP bridge. Using this for application specific metrics requires that those metrics
 are exposed to JMX first, which are many users not familiar with.
-
